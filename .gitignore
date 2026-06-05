@@ -1,0 +1,32 @@
+# Secrets
+.env
+.env.local
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local app state
+state/
+data/
+logs/
+backups/
+
+# TDLib local session/cache
+tdlib_data/
+
+# TDLib source/build repository
+vendor/td/
+
+# macOS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
