@@ -16,7 +16,8 @@ from src.prediction_storage import (
     save_candidates_if_generating,
     update_candidate_scores,
 )
-from src.predictor import OllamaPredictor
+from src.predictor_factory import create_predictor
+from src.generation_status import describe_generation_status
 from src.ranking import CandidateRanker
 from src.storage import get_batch_messages
 from src.telegram_client import ENV_PATH
@@ -66,7 +67,30 @@ class PredictionWorker:
 
     def _run(self) -> None:
         try:
-            predictor = OllamaPredictor()
+            predictor = create_predictor()
+
+            try:
+                generation = describe_generation_status()
+                provider = generation["generation_provider"]
+
+                if provider == "mlx":
+                    print(
+                        f"[prediction worker] Provider: mlx, "
+                        f"model={generation['mlx_chat_model']}, "
+                        f"adapter_exists={generation['mlx_adapter_exists']}",
+                        flush=True,
+                    )
+                else:
+                    print(
+                        f"[prediction worker] Provider: ollama, "
+                        f"model={generation['ollama_chat_model']}",
+                        flush=True,
+                    )
+            except Exception as error:
+                print(
+                    f"[prediction worker] Provider status unavailable: {error}",
+                    flush=True,
+                )
 
         except Exception as error:
             print(
@@ -87,6 +111,8 @@ class PredictionWorker:
             )
 
         while not self._stop_event.is_set():
+            predictor.refresh_model()
+
             batch_id = claim_next_ready_batch(
                 chat_id=self.chat_id,
                 model=predictor.model,
@@ -104,7 +130,7 @@ class PredictionWorker:
 
     def _process_batch(
         self,
-        predictor: OllamaPredictor,
+        predictor,
         ranker: CandidateRanker | None,
         batch_id: int,
     ) -> None:

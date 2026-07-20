@@ -10,6 +10,7 @@ from src.chat_context import chat_db_path, get_active_chat
 from dotenv import load_dotenv
 
 from src.telegram_client import ENV_PATH
+from src.generation_status import describe_generation_status
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -214,6 +215,15 @@ def print_status() -> None:
         print(f"target_user_id:       {target_user_id}")
         print(f"target_tdlib_chat_id: {target_chat_id}")
         print(f"messages:             {messages_count}")
+
+        try:
+            generation = describe_generation_status()
+            print(f"generation_provider:  {generation['generation_provider']}")
+            print(f"mlx_model:            {generation['mlx_chat_model'] or 'not set'}")
+            print(f"mlx_adapter_exists:   {generation['mlx_adapter_exists']}")
+            print(f"ollama_embed_model:   {generation['ollama_embed_model']}")
+        except Exception as error:
+            print(f"generation_provider:  unavailable ({error})")
 
         print_batches_summary(connection)
         print_pending_candidates(connection)

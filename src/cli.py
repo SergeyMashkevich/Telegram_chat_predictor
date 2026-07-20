@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 
 from src.app_status import print_status
 from src.live_history_sync import sync_current_chat
+from src.generation_status import print_generation_status
 from src.manual_storage import (
     claim_candidate_for_send,
     claim_custom_response_for_send,
@@ -58,6 +59,7 @@ def print_cli_help() -> None:
     print("  help                     показать команды")
     print("  status                   показать состояние приложения")
     print("  sync [limit]             обновить историю текущего чата")
+    print("  model                    показать generation provider и adapter")
     print("  mode                     показать текущий режим")
     print("  auto                     включить автоматическую отправку")
     print("  manual                   включить ручной режим")
@@ -269,6 +271,47 @@ def handle_cli_command(
 
     if lower in {"help", "h", "?"}:
         print_cli_help()
+        return True
+
+    if lower in {"model", "provider", "generation"}:
+        print_generation_status()
+        return True
+
+    if lower == "model":
+        info = describe_model_selection()
+
+        print()
+        print("[CLI] Model selection")
+        print(f"  resolved:        {info['resolved_model']}")
+        print(f"  reason:          {info['reason']}")
+        print(f"  selected_model:  {info['selected_model'] or 'not set'}")
+        print(f"  trained_model:   {info['suggested_trained_model']}")
+        print(f"  trained_exists:  {info['trained_model_exists']}")
+        print(f"  default_model:   {info['default_model']}")
+
+        if info["available_error"]:
+            print(f"  ollama_error:    {info['available_error']}")
+
+        print()
+        return True
+
+        if not models:
+            print("[CLI] Ollama-модели не найдены.", flush=True)
+            return True
+
+        print()
+        print("[CLI] Available Ollama models:")
+
+        for model_name in models:
+            print(f"  {model_name}")
+
+        print()
+        return True
+
+        print(
+            f"[CLI] Для текущего чата выбрана модель: {model_name}",
+            flush=True,
+        )
         return True
 
     if lower in {"status", "st"}:

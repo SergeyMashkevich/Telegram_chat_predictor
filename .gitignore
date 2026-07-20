@@ -1,32 +1,38 @@
 # Secrets
 .env
-.env.local
+.env.*
+!.env.example
 
 # Python
 .venv/
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 
-# Local app state
+# macOS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# TDLib / runtime data
+tdlib_data/
 state/
 data/
 logs/
 backups/
 
-# TDLib local session/cache
-tdlib_data/
+# Private training data / trained adapters
+datasets/
+adapters/
 
-# TDLib source/build repository
-vendor/td/
+# Local builds / vendored TDLib
+vendor/
 
-# macOS
-.DS_Store
+# Old experiments / local archive
+archive/
+legacy/
 
-# Editors
-.vscode/
-.idea/
+# Logs
+*.log

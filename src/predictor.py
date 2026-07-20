@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from ollama import Client
 
 from src.telegram_client import ENV_PATH
+from src.model_registry import resolve_chat_model
 
 
 def require_env(name: str) -> str:
@@ -73,7 +74,7 @@ class OllamaPredictor:
     def __init__(self) -> None:
         load_dotenv(ENV_PATH)
 
-        self.model = require_env("OLLAMA_CHAT_MODEL")
+        self.model = resolve_chat_model()
         self.host = require_env("OLLAMA_HOST")
 
         self.candidate_count = int(os.getenv("CANDIDATE_COUNT", "3"))
@@ -83,6 +84,10 @@ class OllamaPredictor:
         self.keep_alive = os.getenv("OLLAMA_KEEP_ALIVE", "30m")
 
         self.client = Client(host=self.host)
+
+    def refresh_model(self) -> str:
+        self.model = resolve_chat_model()
+        return self.model
 
     def candidate_schema(self, incoming_message_count: int) -> dict[str, Any]:
         return {
@@ -239,6 +244,8 @@ class OllamaPredictor:
         history_messages: list[dict[str, Any]],
         incoming_messages: list[dict[str, Any]],
     ) -> tuple[list[dict[str, Any]], str]:
+        self.refresh_model()
+
         incoming_message_count = len(incoming_messages)
 
         if incoming_message_count == 0:

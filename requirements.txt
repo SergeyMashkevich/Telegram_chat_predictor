@@ -1,2 +1,4 @@
-ollama
 python-dotenv
+requests
+ollama
+numpy
