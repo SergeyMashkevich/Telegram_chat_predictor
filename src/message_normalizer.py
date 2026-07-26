@@ -5,18 +5,20 @@ from datetime import datetime, timezone
 from typing import Any
 
 
+NORMALIZATION_FORMAT_VERSION = 2
+
 MEDIA_PLACEHOLDERS = {
-    "messagePhoto": "[фото]",
-    "messageVideo": "[видео]",
-    "messageAnimation": "[анимация]",
-    "messageDocument": "[файл]",
-    "messageAudio": "[аудио]",
-    "messageVoiceNote": "[голосовое сообщение]",
-    "messageVideoNote": "[видеосообщение]",
-    "messageContact": "[контакт]",
-    "messageLocation": "[геолокация]",
-    "messageVenue": "[место]",
-    "messagePoll": "[опрос]",
+    "messagePhoto": "[photo]",
+    "messageVideo": "[video]",
+    "messageAnimation": "[animation]",
+    "messageDocument": "[file]",
+    "messageAudio": "[audio]",
+    "messageVoiceNote": "[voice message]",
+    "messageVideoNote": "[video message]",
+    "messageContact": "[contact]",
+    "messageLocation": "[location]",
+    "messageVenue": "[venue]",
+    "messagePoll": "[poll]",
 }
 
 
@@ -186,9 +188,9 @@ def extract_message_content(
         emoji = str(sticker.get("emoji", "")).strip()
 
         if emoji:
-            text = f"[стикер: {emoji}]"
+            text = f"[sticker: {emoji}]"
         else:
-            text = "[стикер]"
+            text = "[sticker]"
 
         sticker_metadata = {
             "id": str(sticker.get("id", "")),
@@ -269,6 +271,7 @@ def normalize_text_message(
     normalized = {
         "id": int(message["id"]),
         "type": "message",
+        "normalization_format_version": NORMALIZATION_FORMAT_VERSION,
         "content_type": content_type,
         "date": date_iso,
         "date_unixtime": date_unixtime,

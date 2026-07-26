@@ -413,7 +413,7 @@ def main() -> None:
     if not db_path.exists():
         raise RuntimeError(
             f"Database not found: {db_path}. "
-            "Сначала запустите live_sync."
+            "Run live_sync first."
         )
 
     with connect() as connection:

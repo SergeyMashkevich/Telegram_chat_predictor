@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -20,7 +21,7 @@ def adapter_dir() -> Path:
 
     if active_chat is None:
         raise RuntimeError(
-            "Чат не выбран. Сначала выполните make run или make select-chat."
+            "No chat selected. Run make run or make select-chat first."
         )
 
     return ADAPTERS_DIR / "chats" / str(active_chat["chat_id"]) / "lora"
@@ -30,13 +31,14 @@ def build_prompt(incoming_lines: list[str], model: str) -> str:
     incoming_text = "\n".join(incoming_lines)
 
     system_prompt = (
-        "Имитируй стиль пользователя в личной переписке Telegram. "
-        "Ответь так, как пользователь вероятнее всего ответил бы сам. "
-        "Не объясняй ответ."
+        "Imitate the user's style in a private Telegram chat. "
+        "Respond as the user would most likely respond. "
+        "Use the language naturally implied by the conversation. "
+        "Do not explain the response."
     )
 
     user_prompt = (
-        "Текущий входящий блок, на который нужно ответить:\n\n"
+        "Current incoming batch to answer:\n\n"
         f"{incoming_text}"
     )
 
@@ -62,7 +64,7 @@ def main() -> None:
 
     if active_chat is None:
         raise RuntimeError(
-            "Чат не выбран. Сначала выполните make run или make select-chat."
+            "No chat selected. Run make run or make select-chat first."
         )
 
     model = resolve_active_mlx_model()
@@ -71,7 +73,7 @@ def main() -> None:
 
     if not (adapter_path / "adapters.safetensors").exists():
         raise RuntimeError(
-            f"Adapter не найден: {adapter_path / 'adapters.safetensors'}"
+            f"Adapter not found: {adapter_path / 'adapters.safetensors'}"
         )
 
     print()
@@ -81,8 +83,8 @@ def main() -> None:
     print(f"model:   {model}")
     print(f"adapter: {adapter_path}")
     print()
-    print("Введите входящий блок собеседника.")
-    print("Пустая строка завершает ввод.")
+    print("Enter an incoming batch from the chat partner.")
+    print("An empty line finishes the input.")
     print()
 
     incoming_lines: list[str] = []
@@ -96,7 +98,7 @@ def main() -> None:
         incoming_lines.append(line)
 
     if not incoming_lines:
-        raise RuntimeError("Нужно ввести хотя бы одно сообщение.")
+        raise RuntimeError("Enter at least one message.")
 
     prompt = build_prompt(
         incoming_lines=incoming_lines,
@@ -104,7 +106,10 @@ def main() -> None:
     )
 
     command = [
-        "mlx_lm.generate",
+        sys.executable,
+        "-m",
+        "mlx_lm",
+        "generate",
         "--model",
         model,
         "--adapter-path",

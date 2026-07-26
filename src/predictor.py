@@ -15,7 +15,7 @@ def require_env(name: str) -> str:
     value = os.getenv(name)
 
     if value is None or not value.strip():
-        raise RuntimeError(f"Переменная {name} не указана в .env")
+        raise RuntimeError(f"Variable {name} is not set in .env")
 
     return value.strip()
 
@@ -43,11 +43,11 @@ def format_reactions(message: dict[str, Any]) -> str:
         count = int(reaction.get("total_count", 0))
         labels.append(f"{label} × {count}")
 
-    return f" [реакции: {', '.join(labels)}]"
+    return f" [reactions: {', '.join(labels)}]"
 
 
 def render_message(message: dict[str, Any]) -> str:
-    role = "Вы" if message.get("is_outgoing") else "Собеседник"
+    role = "You" if message.get("is_outgoing") else "Chat partner"
     text = str(message.get("text", "")).strip()
 
     return f"{role}: {text}{format_reactions(message)}"
@@ -55,14 +55,14 @@ def render_message(message: dict[str, Any]) -> str:
 
 def render_transcript(messages: list[dict[str, Any]]) -> str:
     if not messages:
-        return "(история отсутствует)"
+        return "(no previous conversation)"
 
     return "\n".join(render_message(message) for message in messages)
 
 
 def render_numbered_incoming(messages: list[dict[str, Any]]) -> str:
     if not messages:
-        return "(входящий блок отсутствует)"
+        return "(no incoming batch)"
 
     return "\n".join(
         f"[{index}] {render_message(message)}"
@@ -135,12 +135,14 @@ class OllamaPredictor:
         try:
             payload = json.loads(content)
         except json.JSONDecodeError as error:
-            raise RuntimeError("Ollama вернула некорректный JSON.") from error
+            raise RuntimeError("Ollama returned invalid JSON.") from error
 
         raw_candidates = payload.get("candidates", [])
 
         if not isinstance(raw_candidates, list):
-            raise RuntimeError("Поле candidates в ответе Ollama не является массивом.")
+            raise RuntimeError(
+                "The candidates field in the Ollama response is not an array."
+            )
 
         candidates: list[dict[str, Any]] = []
         seen_messages: set[str] = set()
@@ -195,9 +197,9 @@ class OllamaPredictor:
         candidates: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
         """
-        Reply не должен появляться у всех кандидатов.
-        Даже если модель рекомендует reply слишком часто, оставляем reply
-        максимум у половины кандидатов, но не больше чем у одного при 3 вариантах.
+        A reply should not appear on every candidate.
+        Even if the model recommends replies too often, keep replies on at most
+        half of the candidates, and on no more than one when there are 3 options.
         """
         reply_candidates = [
             candidate
@@ -249,52 +251,53 @@ class OllamaPredictor:
         incoming_message_count = len(incoming_messages)
 
         if incoming_message_count == 0:
-            raise RuntimeError("Нельзя генерировать ответ для пустого входящего блока.")
+            raise RuntimeError(
+                "Cannot generate a response for an empty incoming batch."
+            )
 
         system_prompt = f"""
-Вы предсказываете следующее сообщение, которое пользователь написал бы
-в личной переписке Telegram.
+Predict the next message the user would write in a private Telegram chat.
 
-Главный приоритет: ответ должен быть осмысленной реакцией на текущий
-входящий блок. Стиль пользователя важен, но нельзя жертвовать смыслом.
+The highest priority is a meaningful response to the current incoming batch.
+The user's style matters, but meaning must not be sacrificed.
 
-Имитируйте стиль пользователя только по предыдущим сообщениям,
-помеченным словом "Вы".
+Imitate the user's style using only previous messages labeled "You".
+Use the language naturally implied by the conversation.
 
-Не отвечайте как помощник.
-Не объясняйте свой выбор.
-Не пишите бессмысленные слова.
-Не используйте случайные слоги, опечатки или странные слова, если они
-не требуются текущим контекстом.
-Не делайте сообщения формальнее, чем стиль пользователя.
-Не придумывайте факты, которых нет в переписке.
-Учитывайте эмодзи, стикеры, медиа-placeholder и реакции.
+Do not answer as an assistant.
+Do not explain your choices.
+Do not write meaningless words.
+Do not use random syllables, typos, or unusual words unless the current
+context calls for them.
+Do not make messages more formal than the user's style.
+Do not invent facts that are not present in the conversation.
+Account for emoji, stickers, media placeholders, and reactions.
 
-Сформируйте ровно {self.candidate_count} разных вероятных вариантов ответа.
+Generate exactly {self.candidate_count} distinct, plausible response options.
 
-Каждый вариант может состоять от 1 до
-{self.max_messages_per_candidate} отдельных Telegram-сообщений.
-Выбирайте количество сообщений естественно.
-Короткий ответ обычно должен состоять из одного сообщения.
-Если мысль естественно разбивается, можно использовать несколько сообщений.
+Each option may contain between 1 and
+{self.max_messages_per_candidate} separate Telegram messages.
+Choose the number of messages naturally.
+A short response should usually contain one message.
+Use multiple messages when the thought naturally splits into several parts.
 
-Для каждого кандидата укажите reply_to_incoming_index:
-- 0, если reply не нужен;
-- номер входящего сообщения в квадратных скобках, если первое исходящее
-  сообщение действительно естественно отправить как reply на него.
+For each candidate, provide reply_to_incoming_index:
+- 0 when no reply is needed;
+- the incoming message number shown in square brackets when the first outgoing
+  message would naturally be sent as a reply to it.
 
-Reply используйте редко. Не ставьте reply у всех кандидатов.
-Reply относится только к первому сообщению кандидата.
+Use replies sparingly. Do not add a reply to every candidate.
+A reply applies only to the candidate's first message.
 
-Текст сообщений должен быть без кавычек, нумерации и Markdown.
+Message text must not include quotation marks, numbering, or Markdown.
 """.strip()
 
         base_user_prompt = f"""
-Предыдущая переписка:
+Previous conversation:
 
 {render_transcript(history_messages)}
 
-Текущий входящий блок, на который нужно ответить:
+Current incoming batch to answer:
 
 {render_numbered_incoming(incoming_messages)}
 """.strip()
@@ -308,9 +311,9 @@ Reply относится только к первому сообщению ка�
 
             if attempt > 1:
                 user_prompt += (
-                    "\n\nПредыдущая попытка была недостаточно естественной. "
-                    "Сделайте ответы более осмысленными, без случайных слов. "
-                    "Не используйте reply у всех кандидатов."
+                    "\n\nThe previous attempt was not natural enough. "
+                    "Make the responses more meaningful and avoid random words. "
+                    "Do not use a reply on every candidate."
                 )
 
             response = self.client.chat(
@@ -350,13 +353,13 @@ Reply относится только к первому сообщению ка�
                 if self.has_message_count_diversity(candidates):
                     return candidates, content
 
-                last_error = "Все кандидаты содержат одинаковое количество сообщений."
+                last_error = "All candidates contain the same number of messages."
                 continue
 
             last_error = (
-                "Ollama вернула "
-                f"{len(candidates)} уникальных кандидатов "
-                f"вместо {self.candidate_count}."
+                "Ollama returned "
+                f"{len(candidates)} unique candidates "
+                f"instead of {self.candidate_count}."
             )
 
         if last_valid_candidates:

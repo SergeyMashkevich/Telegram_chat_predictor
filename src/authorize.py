@@ -11,11 +11,12 @@ def print_error(event: dict[str, Any]) -> None:
     message = event.get("message", "unknown error")
     extra = event.get("@extra")
 
-    print(f"Ошибка TDLib: code={code}, message={message}, extra={extra}")
+    print(f"TDLib error: code={code}, message={message}, extra={extra}")
 
 
 def main() -> None:
     client = TdlibClient()
+    parameters_initialized = False
 
     client.send(
         {
@@ -24,7 +25,7 @@ def main() -> None:
         }
     )
 
-    print("TDLib запущена. Ожидание состояния авторизации...")
+    print("TDLib started. Waiting for authorization state...")
 
     while True:
         event = client.receive(timeout=1.0)
@@ -45,8 +46,8 @@ def main() -> None:
 
             full_name = f"{first_name} {last_name}".strip()
 
-            print(f"Авторизованный аккаунт: {full_name}")
-            print(f"Номер телефона: +{phone_number}")
+            print(f"Authorized account: {full_name}")
+            print(f"Phone number: +{phone_number}")
 
             client.send(
                 {
@@ -72,16 +73,23 @@ def main() -> None:
 
         state_type = state["@type"]
 
-        print(f"Состояние: {state_type}")
+        print(f"State: {state_type}")
 
         if state_type == "authorizationStateWaitTdlibParameters":
-            request = client.build_tdlib_parameters()
-            request["@extra"] = "set_tdlib_parameters"
+            if parameters_initialized:
+                continue
+
+            client.set_tdlib_parameters()
+            parameters_initialized = True
+
+        elif state_type == "authorizationStateWaitEncryptionKey":
+            request = client.build_database_encryption_key_request()
+            request["@extra"] = "check_database_encryption_key"
             client.send(request)
 
         elif state_type == "authorizationStateWaitPhoneNumber":
             phone_number = input(
-                "Введите номер телефона в международном формате, например +45...: "
+                "Enter your phone number in international format, for example +45...: "
             ).strip()
 
             client.send(
@@ -94,7 +102,7 @@ def main() -> None:
             )
 
         elif state_type == "authorizationStateWaitCode":
-            code = input("Введите код подтверждения Telegram: ").strip()
+            code = input("Enter the Telegram verification code: ").strip()
 
             client.send(
                 {
@@ -106,7 +114,7 @@ def main() -> None:
 
         elif state_type == "authorizationStateWaitPassword":
             password = getpass(
-                "Введите пароль двухэтапной аутентификации: "
+                "Enter your two-step verification password: "
             )
 
             client.send(
@@ -119,11 +127,11 @@ def main() -> None:
 
         elif state_type == "authorizationStateWaitOtherDeviceConfirmation":
             link = state.get("link", "")
-            print("Подтвердите вход на другом устройстве:")
+            print("Confirm the login on another device:")
             print(link)
 
         elif state_type == "authorizationStateReady":
-            print("Авторизация завершена успешно.")
+            print("Authorization completed successfully.")
 
             client.send(
                 {
@@ -133,15 +141,15 @@ def main() -> None:
             )
 
         elif state_type == "authorizationStateClosing":
-            print("TDLib закрывает соединение...")
+            print("TDLib is closing the connection...")
 
         elif state_type == "authorizationStateClosed":
-            print("TDLib закрыта. Сессия сохранена в tdlib_data/.")
+            print("TDLib closed. The session was saved in tdlib_data/.")
             break
 
         else:
             raise RuntimeError(
-                f"Пока не поддерживается состояние авторизации: {state_type}"
+                f"Unsupported authorization state: {state_type}"
             )
 
 

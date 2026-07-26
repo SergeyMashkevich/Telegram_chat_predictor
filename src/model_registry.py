@@ -116,14 +116,14 @@ def set_chat_model_override(model_name: str) -> None:
     model_name = model_name.strip()
 
     if not model_name:
-        raise ValueError("Имя модели не может быть пустым.")
+        raise ValueError("Model name cannot be empty.")
 
     available = set(list_ollama_models())
 
     if model_name not in available:
         raise ValueError(
-            f"Модель {model_name!r} не найдена в Ollama. "
-            "Проверьте командой models или выполните ollama pull."
+            f"Model {model_name!r} was not found in Ollama. "
+            "Check with the models command or run ollama pull."
         )
 
     set_app_state("chat_model", model_name)
@@ -135,9 +135,9 @@ def clear_chat_model_override() -> None:
 
 def resolve_chat_model() -> str:
     """
-    Приоритет:
-    1. Ручная модель текущего чата из app_state.chat_model.
-    2. Автообученная модель telegram-chat-... если она существует в Ollama.
+    Priority:
+    1. The current chat's manual model from app_state.chat_model.
+    2. The auto-trained telegram-chat-... model if it exists in Ollama.
     3. DEFAULT_OLLAMA_CHAT_MODEL.
     """
     override = get_chat_model_override()

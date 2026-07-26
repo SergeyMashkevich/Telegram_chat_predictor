@@ -32,7 +32,7 @@ def startup_sync(
     load_dotenv(ENV_PATH)
 
     if not is_enabled():
-        print("[startup sync] отключён.")
+        print("[startup sync] disabled.")
         return
 
     existing_messages = count_messages()
@@ -41,16 +41,16 @@ def startup_sync(
         limit = int(os.getenv("HISTORY_SYNC_LIMIT", "1000"))
 
         print(
-            f"[startup sync] База чата пустая. "
-            f"Первичная синхронизация, limit={limit}...",
+            f"[startup sync] The chat database is empty. "
+            f"Initial sync, limit={limit}...",
             flush=True,
         )
     else:
         limit = int(os.getenv("STARTUP_SYNC_LIMIT", "300"))
 
         print(
-            f"[startup sync] В базе уже {existing_messages} сообщений. "
-            f"Догоняющая синхронизация, limit={limit}...",
+            f"[startup sync] The database already has {existing_messages} messages. "
+            f"Catch-up sync, limit={limit}...",
             flush=True,
         )
 
@@ -61,7 +61,7 @@ def startup_sync(
     )
 
     print(
-        f"[startup sync] Готово: "
+        f"[startup sync] Complete: "
         f"{result['chat_title']}, "
         f"TDLib objects={result['raw_count']}, "
         f"saved={result['normalized_count']}.",

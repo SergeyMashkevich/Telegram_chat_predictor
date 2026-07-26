@@ -20,8 +20,8 @@ def main() -> None:
 
     if not RESULT_PATH.exists():
         raise RuntimeError(
-            "data/result.json не найден. "
-            "Сначала запустите python -m src.history_sync"
+            "data/result.json not found. "
+            "Run python -m src.history_sync first."
         )
 
     result = json.loads(
@@ -34,9 +34,9 @@ def main() -> None:
 
     history_messages = result.get("messages", [])[-context_limit:]
 
-    print("Введите входящие сообщения собеседника.")
-    print("Каждое сообщение вводите с новой строки.")
-    print("Пустая строка завершает ввод.")
+    print("Enter incoming messages from the chat partner.")
+    print("Enter each message on a new line.")
+    print("An empty line finishes the input.")
     print()
 
     incoming_messages = []
@@ -61,14 +61,14 @@ def main() -> None:
 
     if not incoming_messages:
         raise RuntimeError(
-            "Нужно ввести хотя бы одно входящее сообщение."
+            "Enter at least one incoming message."
         )
 
     predictor = OllamaPredictor()
 
     print()
-    print(f"Модель: {predictor.model}")
-    print("Генерация кандидатов...")
+    print(f"Model: {predictor.model}")
+    print("Generating candidates...")
 
     started_at = time.monotonic()
 
@@ -80,7 +80,7 @@ def main() -> None:
     elapsed = time.monotonic() - started_at
 
     print()
-    print(f"Готово за {elapsed:.2f} секунд.")
+    print(f"Completed in {elapsed:.2f} seconds.")
 
     for candidate_position, candidate in enumerate(
         candidates,
@@ -94,21 +94,21 @@ def main() -> None:
         print(f"[{candidate_position}]")
 
         if reply_index == 0:
-            print("(без reply)")
+            print("(no reply)")
         else:
             target_text = incoming_messages[
                 reply_index - 1
             ]["text"]
 
             print(
-                f'(рекомендуемый reply на [{reply_index}] "{target_text}")'
+                f'(recommended reply to [{reply_index}] "{target_text}")'
             )
 
         for message in candidate["messages"]:
             print(message)
 
     print()
-    print("Сырой JSON-ответ Ollama:")
+    print("Raw Ollama JSON response:")
     print(raw_response)
 
 

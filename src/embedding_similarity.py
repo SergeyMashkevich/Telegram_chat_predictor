@@ -14,7 +14,7 @@ def require_env(name: str) -> str:
     value = os.getenv(name)
 
     if value is None or not value.strip():
-        raise RuntimeError(f"Переменная {name} не указана в .env")
+        raise RuntimeError(f"Variable {name} is not set in .env")
 
     return value.strip()
 
@@ -24,7 +24,7 @@ def cosine_similarity(
     right: list[float],
 ) -> float:
     if len(left) != len(right):
-        raise ValueError("Embedding-векторы имеют разную длину.")
+        raise ValueError("Embedding vectors have different lengths.")
 
     dot = sum(a * b for a, b in zip(left, right))
     left_norm = math.sqrt(sum(a * a for a in left))
@@ -75,7 +75,7 @@ class OllamaEmbeddingSimilarity:
         except Exception:
             pass
 
-        # Совместимость со старым endpoint /api/embeddings.
+        # Compatibility with the legacy /api/embeddings endpoint.
         vectors: list[list[float]] = []
 
         for text in clean_texts:
@@ -91,7 +91,7 @@ class OllamaEmbeddingSimilarity:
 
             if embedding is None:
                 raise RuntimeError(
-                    "Ollama не вернула embedding-вектор."
+                    "Ollama did not return an embedding vector."
                 )
 
             vectors.append(

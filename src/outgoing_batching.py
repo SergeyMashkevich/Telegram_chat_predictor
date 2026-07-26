@@ -59,7 +59,7 @@ class OutgoingBatcher:
             )
 
             print(
-                f"[исходящий блок #{batch_id}] начат сбор сообщений.",
+                f"[outgoing batch #{batch_id}] started collecting messages.",
                 flush=True,
             )
             return
@@ -75,8 +75,8 @@ class OutgoingBatcher:
 
         if appended:
             print(
-                f"[исходящий блок #{batch_id}] "
-                "добавлено ещё одно сообщение.",
+                f"[outgoing batch #{batch_id}] "
+                "added another message.",
                 flush=True,
             )
 
@@ -105,7 +105,7 @@ class OutgoingBatcher:
         messages = get_batch_messages(batch_id)
 
         print()
-        print(f"[готов исходящий блок #{batch_id}]")
+        print(f"[outgoing batch #{batch_id} ready]")
 
         for index, message in enumerate(messages, start=1):
             print(f"{index}. {message.get('text', '')}")
@@ -116,14 +116,14 @@ class OutgoingBatcher:
 
         if linked_incoming_batch_id is None:
             print(
-                f"[исходящий блок #{batch_id}] "
-                "сохранён, но не связан с входящим блоком.",
+                f"[outgoing batch #{batch_id}] "
+                "saved but not linked to an incoming batch.",
                 flush=True,
             )
         else:
             print(
-                f"[исходящий блок #{batch_id}] "
-                f"связан с входящим блоком #{linked_incoming_batch_id}.",
+                f"[outgoing batch #{batch_id}] "
+                f"linked to incoming batch #{linked_incoming_batch_id}.",
                 flush=True,
             )
 

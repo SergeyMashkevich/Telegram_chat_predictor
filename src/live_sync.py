@@ -38,7 +38,7 @@ from src.storage import (
     replace_message_id_in_batches,
     upsert_messages,
 )
-from src.telegram_client import ENV_PATH, TdlibClient
+from src.telegram_client import ENV_PATH, TdlibClient, TdlibRequestError
 
 
 def require_int_setting(
@@ -49,8 +49,8 @@ def require_int_setting(
 
     if value is None or not value.strip():
         raise RuntimeError(
-            f"Не найдено значение {state_key} или {env_key}. "
-            "Сначала запустите python -m src.history_sync"
+            f"No value found for {state_key} or {env_key}. "
+            "Run python -m src.history_sync first."
         )
 
     return int(value)
@@ -77,9 +77,9 @@ def format_reaction_target(message: dict[str, Any]) -> str:
     text = preview_text(str(message.get("text", "")), limit=80)
 
     if content_type == "messageSticker":
-        target_type = "стикеру"
+        target_type = "sticker"
     elif content_type in {"messageAnimatedEmoji", "messageDice"}:
-        target_type = "эмодзи"
+        target_type = "emoji"
     elif content_type in {
         "messagePhoto",
         "messageVideo",
@@ -89,16 +89,16 @@ def format_reaction_target(message: dict[str, Any]) -> str:
         "messageVoiceNote",
         "messageVideoNote",
     }:
-        target_type = "медиа-сообщению"
+        target_type = "media message"
     else:
-        target_type = "сообщению"
+        target_type = "message"
 
     return f'{target_type} "{text}"'
 
 
 def format_reactions(reactions: list[dict[str, Any]]) -> str:
     if not reactions:
-        return "нет реакций"
+        return "no reactions"
 
     parts = []
 
@@ -115,7 +115,7 @@ def format_reactions(reactions: list[dict[str, Any]]) -> str:
             label = "[unknown reaction]"
 
         count = int(reaction.get("total_count", 0))
-        chosen = " ваша" if reaction.get("is_chosen") else ""
+        chosen = " (yours)" if reaction.get("is_chosen") else ""
 
         parts.append(f"{label} × {count}{chosen}")
 
@@ -156,7 +156,7 @@ def save_message(
             delete_result_messages([message_id])
 
             print(
-                f"Сообщение {message_id} удалено из локального снимка.",
+                f"Message {message_id} removed from the local snapshot.",
                 flush=True,
             )
 
@@ -174,9 +174,9 @@ def save_message(
 
     if log_message:
         direction = (
-            "исходящее"
+            "outgoing"
             if normalized["is_outgoing"]
-            else "входящее"
+            else "incoming"
         )
 
         print(
@@ -216,8 +216,8 @@ def handle_message_content_update(
             }
         )
 
-    except RuntimeError as error:
-        if "404" in str(error):
+    except TdlibRequestError as error:
+        if error.code == 404:
             delete_messages(target_chat_id, [message_id])
             delete_result_messages([message_id])
             return
@@ -306,8 +306,8 @@ def handle_message_interaction_update(
     )
 
     print(
-        f"[реакции] "
-        f"к {format_reaction_target(saved_message)} "
+        f"[reactions] "
+        f"for {format_reaction_target(saved_message)} "
         f"id={message_id}: "
         f"{format_reactions(new_reactions)}",
         flush=True,
@@ -390,17 +390,17 @@ def main() -> None:
             chat_id=target_chat_id,
         )
 
-        print(f"Live-синхронизация запущена для чата: {other_name}")
+        print(f"Live sync started for chat: {other_name}")
         print(f"TDLib chat_id: {target_chat_id}")
         print(
-            f"Задержка входящего блока: "
-            f"{batch_delay_seconds:g} секунд"
+            f"Incoming batch delay: "
+            f"{batch_delay_seconds:g} seconds"
         )
         print(
-            f"Задержка исходящего блока: "
-            f"{outgoing_batch_delay_seconds:g} секунд"
+            f"Outgoing batch delay: "
+            f"{outgoing_batch_delay_seconds:g} seconds"
         )
-        print("Ожидание новых сообщений. Для остановки нажмите Ctrl + C.")
+        print("Waiting for new messages. Press Ctrl+C to stop.")
 
         prediction_worker.start()
         response_matcher.start()
@@ -422,7 +422,7 @@ def main() -> None:
                 )
 
                 if not keep_running:
-                    print("Завершение по CLI-команде.")
+                    print("Exiting on CLI command.")
                     break
 
             auto_sender.tick(client)
@@ -557,7 +557,7 @@ def main() -> None:
                 delete_result_messages(message_ids)
 
                 print(
-                    f"Удалено сообщений из локального снимка: "
+                    f"Messages removed from the local snapshot: "
                     f"{len(message_ids)}",
                     flush=True,
                 )
@@ -567,11 +567,11 @@ def main() -> None:
                 state_type = state.get("@type")
 
                 if state_type == "authorizationStateClosed":
-                    print("TDLib-соединение закрыто.")
+                    print("TDLib connection closed.")
                     break
 
     except KeyboardInterrupt:
-        print("\nОстановка live-синхронизации...")
+        print("\nStopping live sync...")
 
     finally:
         response_matcher.stop()

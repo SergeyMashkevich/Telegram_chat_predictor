@@ -12,7 +12,12 @@ from src.chat_context import chat_result_path
 
 from src.message_normalizer import normalize_text_message
 from src.storage import get_app_state, initialize_database, set_app_state, upsert_messages
-from src.telegram_client import ENV_PATH, PROJECT_ROOT, TdlibClient
+from src.telegram_client import (
+    ENV_PATH,
+    PROJECT_ROOT,
+    TdlibClient,
+    TdlibRequestError,
+)
 
 
 
@@ -21,7 +26,7 @@ def require_env(name: str) -> str:
     value = os.getenv(name)
 
     if value is None or not value.strip():
-        raise RuntimeError(f"Переменная {name} не указана в .env")
+        raise RuntimeError(f"Variable {name} is not set in .env")
 
     return value.strip()
 
@@ -47,16 +52,20 @@ def ensure_authorized(client: TdlibClient) -> None:
             return
 
         if state_type == "authorizationStateWaitTdlibParameters":
-            client.request(client.build_tdlib_parameters())
+            client.set_tdlib_parameters()
+            continue
+
+        if state_type == "authorizationStateWaitEncryptionKey":
+            client.request(client.build_database_encryption_key_request())
             continue
 
         raise RuntimeError(
-            "TDLib-сессия не готова. "
-            f"Текущее состояние: {state_type}. "
-            "Сначала запустите python -m src.authorize"
+            "The TDLib session is not ready. "
+            f"Current state: {state_type}. "
+            "Run python -m src.authorize first."
         )
 
-    raise RuntimeError("Не удалось дождаться готовности TDLib-сессии")
+    raise RuntimeError("Timed out waiting for the TDLib session to become ready")
 
 
 def load_more_chats(
@@ -75,10 +84,8 @@ def load_more_chats(
 
         return True
 
-    except RuntimeError as error:
-        error_text = str(error)
-
-        if "Ошибка TDLib: 404" in error_text:
+    except TdlibRequestError as error:
+        if error.code == 404:
             return False
 
         raise
@@ -89,12 +96,12 @@ def find_private_chat(
     target_user_id: int,
 ) -> dict[str, Any]:
     chat_lists: list[tuple[str, dict[str, Any] | None]] = [
-        ("основном списке", None),
-        ("архиве", {"@type": "chatListArchive"}),
+        ("main list", None),
+        ("archive", {"@type": "chatListArchive"}),
     ]
 
     for list_name, chat_list in chat_lists:
-        print(f"Поиск чата в {list_name}...")
+        print(f"Searching for the chat in the {list_name}...")
 
         while True:
             loaded_more = load_more_chats(
@@ -131,8 +138,8 @@ def find_private_chat(
                 break
 
     raise RuntimeError(
-        "Личный чат с TARGET_USER_ID не найден среди основных "
-        "и архивных чатов Telegram."
+        "A private chat with TARGET_USER_ID was not found in the main "
+        "or archived Telegram chats."
     )
 
 
@@ -180,7 +187,7 @@ def get_chat_history(
 
         from_message_id = next_from_message_id
 
-        print(f"Получено сообщений: {len(collected)} / {max_messages}")
+        print(f"Messages received: {len(collected)} / {max_messages}")
 
     return sorted(
         collected.values(),
@@ -215,7 +222,7 @@ def main() -> None:
 
     if target_user_id_raw is None or not str(target_user_id_raw).strip():
         raise RuntimeError(
-            "Чат не выбран. Выполните make select-chat или make run."
+            "No chat selected. Run make select-chat or make run."
         )
 
     target_user_id = int(target_user_id_raw)
@@ -254,7 +261,7 @@ def main() -> None:
             tdlib_chat_id = int(chat["id"])
         other_name = str(chat.get("title", "")).strip() or str(target_user_id)
 
-        print(f"Чат найден: {other_name}")
+        print(f"Chat found: {other_name}")
         print(f"TDLib chat_id: {tdlib_chat_id}")
 
         raw_messages = get_chat_history(
@@ -309,8 +316,8 @@ def main() -> None:
         from src.chat_context import chat_db_path
 
         print()
-        print(f"Всего получено объектов TDLib: {len(raw_messages)}")
-        print(f"Сохранено текстовых сообщений: {len(normalized_messages)}")
+        print(f"Total TDLib objects received: {len(raw_messages)}")
+        print(f"Text messages saved: {len(normalized_messages)}")
         print(f"SQLite: {chat_db_path()}")
         print(f"JSON: {result_path}")
 

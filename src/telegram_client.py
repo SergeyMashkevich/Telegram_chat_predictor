@@ -16,11 +16,18 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 ENV_PATH = PROJECT_ROOT / ".env"
 
 
+class TdlibRequestError(RuntimeError):
+    def __init__(self, code: int, message: str) -> None:
+        self.code = code
+        self.message = message
+        super().__init__(f"TDLib error: {code} {message}")
+
+
 def require_env(name: str) -> str:
     value = os.getenv(name)
 
     if value is None or not value.strip():
-        raise RuntimeError(f"Переменная {name} не указана в .env")
+        raise RuntimeError(f"Variable {name} is not set in .env")
 
     return value.strip()
 
@@ -42,7 +49,7 @@ class TdlibClient:
 
         if not library_path.exists():
             raise FileNotFoundError(
-                f"Библиотека TDLib не найдена: {library_path}"
+                f"TDLib library not found: {library_path}"
             )
 
         self._tdjson = ctypes.CDLL(str(library_path))
@@ -141,7 +148,7 @@ class TdlibClient:
 
             if remaining <= 0:
                 raise TimeoutError(
-                    f"TDLib не ответила на запрос: {request.get('@type')}"
+                    f"TDLib did not respond to request: {request.get('@type')}"
                 )
 
             event = self._raw_receive(min(1.0, remaining))
@@ -151,16 +158,20 @@ class TdlibClient:
 
             if event.get("@extra") == extra:
                 if event.get("@type") == "error":
-                    raise RuntimeError(
-                        f"Ошибка TDLib: {event.get('code')} "
-                        f"{event.get('message')}"
+                    raise TdlibRequestError(
+                        code=int(event.get("code", 0)),
+                        message=str(event.get("message", "")),
                     )
 
                 return event
 
             self._buffered_events.append(event)
 
-    def build_tdlib_parameters(self) -> dict[str, Any]:
+    def build_tdlib_parameters(
+        self,
+        *,
+        legacy: bool = False,
+    ) -> dict[str, Any]:
         database_directory = resolve_project_path(
             require_env("TDLIB_DATABASE_DIR")
         )
@@ -171,22 +182,57 @@ class TdlibClient:
         database_directory.mkdir(parents=True, exist_ok=True)
         files_directory.mkdir(parents=True, exist_ok=True)
 
-        return {
-            "@type": "setTdlibParameters",
+        parameters = {
             "use_test_dc": False,
             "database_directory": str(database_directory),
             "files_directory": str(files_directory),
-            "database_encryption_key": require_env(
-                "TDLIB_DATABASE_ENCRYPTION_KEY"
-            ),
             "use_file_database": True,
             "use_chat_info_database": True,
             "use_message_database": True,
             "use_secret_chats": False,
             "api_id": int(require_env("TELEGRAM_API_ID")),
             "api_hash": require_env("TELEGRAM_API_HASH"),
-            "system_language_code": "ru",
+            "system_language_code": "en",
             "device_model": "MacBook",
             "system_version": "macOS",
             "application_version": "0.1.0",
+        }
+
+        if legacy:
+            return {
+                "@type": "setTdlibParameters",
+                "parameters": {
+                    "@type": "tdlibParameters",
+                    **parameters,
+                    "enable_storage_optimizer": True,
+                    "ignore_file_names": False,
+                },
+            }
+
+        return {
+            "@type": "setTdlibParameters",
+            **parameters,
+            "database_encryption_key": require_env(
+                "TDLIB_DATABASE_ENCRYPTION_KEY"
+            ),
+        }
+
+    def set_tdlib_parameters(self) -> None:
+        try:
+            self.request(self.build_tdlib_parameters())
+        except TdlibRequestError as error:
+            if (
+                error.code != 400
+                or error.message != "Parameters aren't specified"
+            ):
+                raise
+
+            self.request(self.build_tdlib_parameters(legacy=True))
+
+    def build_database_encryption_key_request(self) -> dict[str, Any]:
+        return {
+            "@type": "checkDatabaseEncryptionKey",
+            "encryption_key": require_env(
+                "TDLIB_DATABASE_ENCRYPTION_KEY"
+            ),
         }

@@ -75,7 +75,7 @@ def send_text_messages(
     ]
 
     if not clean_messages:
-        raise ValueError("Нет сообщений для отправки.")
+        raise ValueError("There are no messages to send.")
 
     should_try_reply = (
         reply_to_message_id is not None
@@ -116,14 +116,14 @@ def send_text_messages(
 
                 except Exception as second_error:
                     raise MessageSendError(
-                        "Не удалось отправить сообщение "
-                        f"даже без reply: {second_error}",
+                        "Could not send the message "
+                        f"even without a reply: {second_error}",
                         sent_messages=sent_messages,
                     ) from second_error
 
             else:
                 raise MessageSendError(
-                    f"Не удалось отправить сообщение: {first_error}",
+                    f"Could not send the message: {first_error}",
                     sent_messages=sent_messages,
                 ) from first_error
 

@@ -25,7 +25,7 @@ def sync_current_chat(
 
     if target_user_id_raw is None:
         raise RuntimeError(
-            "target_user_id не найден. Сначала выполните make select-chat."
+            "target_user_id not found. Run make select-chat first."
         )
 
     target_user_id = int(target_user_id_raw)

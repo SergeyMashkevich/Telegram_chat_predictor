@@ -18,7 +18,7 @@ def load_tdlib() -> ctypes.CDLL:
 
     configured_path = os.getenv("TDLIB_LIBRARY_PATH")
     if not configured_path:
-        raise RuntimeError("TDLIB_LIBRARY_PATH не указан в .env")
+        raise RuntimeError("TDLIB_LIBRARY_PATH is not set in .env")
 
     library_path = Path(configured_path)
     if not library_path.is_absolute():
@@ -28,14 +28,14 @@ def load_tdlib() -> ctypes.CDLL:
 
     if not library_path.exists():
         raise FileNotFoundError(
-            f"Библиотека TDLib не найдена: {library_path}"
+            f"TDLib library not found: {library_path}"
         )
 
     try:
         tdjson = ctypes.CDLL(str(library_path))
     except OSError as error:
         raise RuntimeError(
-            f"Не удалось загрузить TDLib: {error}"
+            f"Could not load TDLib: {error}"
         ) from error
 
     tdjson.td_execute.argtypes = [ctypes.c_char_p]
@@ -49,43 +49,38 @@ def execute(tdjson: ctypes.CDLL, request: dict[str, Any]) -> dict[str, Any]:
     response_ptr = tdjson.td_execute(request_json)
 
     if response_ptr is None:
-        raise RuntimeError("TDLib вернула пустой ответ")
+        raise RuntimeError("TDLib returned an empty response")
 
     response_json = response_ptr.decode("utf-8")
     return json.loads(response_json)
 
 
-def get_string_option(tdjson: ctypes.CDLL, name: str) -> str:
-    response = execute(
-        tdjson,
-        {
-            "@type": "getOption",
-            "name": name,
-        },
-    )
-
-    if response.get("@type") == "error":
-        raise RuntimeError(
-            f"Ошибка TDLib для getOption({name!r}): {response}"
-        )
-
-    if response.get("@type") != "optionValueString":
-        raise RuntimeError(
-            f"Неожиданный ответ TDLib для getOption({name!r}): {response}"
-        )
-
-    return str(response["value"])
-
-
 def main() -> None:
     tdjson = load_tdlib()
 
-    version = get_string_option(tdjson, "version")
-    commit_hash = get_string_option(tdjson, "commit_hash")
+    execute(
+        tdjson,
+        {
+            "@type": "setLogVerbosityLevel",
+            "new_verbosity_level": 0,
+        },
+    )
 
-    print("OK: библиотека TDLib загружена")
-    print(f"TDLib version: {version}")
-    print(f"Commit hash: {commit_hash}")
+    response = execute(
+        tdjson,
+        {
+            "@type": "getTextEntities",
+            "text": "TDLib",
+        },
+    )
+
+    if response.get("@type") != "textEntities":
+        raise RuntimeError(
+            f"Unexpected TDLib static response: {response}"
+        )
+
+    print("OK: TDLib library loaded")
+    print("OK: TDLib static request completed")
 
 
 if __name__ == "__main__":

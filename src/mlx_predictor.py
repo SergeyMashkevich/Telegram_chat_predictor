@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -22,7 +23,7 @@ def message_text(message: dict[str, Any]) -> str:
 
 
 def render_message(message: dict[str, Any]) -> str:
-    role = "Вы" if bool(message.get("is_outgoing")) else "Собеседник"
+    role = "You" if bool(message.get("is_outgoing")) else "Chat partner"
     text = message_text(message)
 
     return f"{role}: {text}"
@@ -36,7 +37,7 @@ def render_transcript(messages: list[dict[str, Any]]) -> str:
     ]
 
     if not rendered:
-        return "(история отсутствует)"
+        return "(no previous conversation)"
 
     return "\n".join(rendered)
 
@@ -48,10 +49,10 @@ def render_numbered_incoming(messages: list[dict[str, Any]]) -> str:
         text = message_text(message)
 
         if text:
-            rendered.append(f"[{index}] Собеседник: {text}")
+            rendered.append(f"[{index}] Chat partner: {text}")
 
     if not rendered:
-        return "(входящий блок отсутствует)"
+        return "(no incoming batch)"
 
     return "\n".join(rendered)
 
@@ -61,7 +62,7 @@ def active_adapter_dir() -> Path:
 
     if active_chat is None:
         raise RuntimeError(
-            "Чат не выбран. Сначала выполните make run или make select-chat."
+            "No chat selected. Run make run or make select-chat first."
         )
 
     return ADAPTERS_DIR / "chats" / str(active_chat["chat_id"]) / "lora"
@@ -94,7 +95,7 @@ def extract_json_object(text: str) -> dict[str, Any]:
 
     if start == -1 or end == -1 or end <= start:
         raise RuntimeError(
-            "MLX-модель не вернула JSON-объект."
+            "The MLX model did not return a JSON object."
         )
 
     candidate = text[start:end + 1]
@@ -103,7 +104,7 @@ def extract_json_object(text: str) -> dict[str, Any]:
         return json.loads(candidate)
     except json.JSONDecodeError as error:
         raise RuntimeError(
-            f"MLX-модель вернула некорректный JSON: {candidate[:500]}"
+            f"The MLX model returned invalid JSON: {candidate[:500]}"
         ) from error
 
 
@@ -125,7 +126,7 @@ class MLXPredictor:
 
         if not (self.adapter_path / "adapters.safetensors").exists():
             raise RuntimeError(
-                f"MLX adapter не найден: {self.adapter_path / 'adapters.safetensors'}"
+                f"MLX adapter not found: {self.adapter_path / 'adapters.safetensors'}"
             )
 
     def _resolve_model(self) -> str:
@@ -146,48 +147,47 @@ class MLXPredictor:
         attempt: int,
     ) -> str:
         system_prompt = (
-            "Ты предсказываешь следующее сообщение, которое пользователь "
-            "написал бы в личной переписке Telegram. "
-            "Имитируй только стиль пользователя, помеченного как «Вы». "
-            "Ответ должен быть естественным, коротким и уместным. "
-            "Не объясняй ответ. "
-            "Верни только JSON без Markdown."
+            "Predict the next message the user would write in a private "
+            "Telegram chat. Imitate only the style of the user labeled "
+            "\"You\". Use the language naturally implied by the conversation. "
+            "The response must be natural, concise, and appropriate. "
+            "Do not explain the response. Return only JSON without Markdown."
         )
 
         user_prompt = f"""
-Предыдущая переписка:
+Previous conversation:
 
 {render_transcript(history_messages)}
 
-Текущий входящий блок, на который нужно ответить:
+Current incoming batch to answer:
 
 {render_numbered_incoming(incoming_messages)}
 
-Сформируй ровно {self.candidate_count} разных кандидатов.
+Generate exactly {self.candidate_count} distinct candidates.
 
-Формат ответа строго такой:
+Use exactly this response format:
 {{
   "candidates": [
     {{
-      "messages": ["текст первого Telegram-сообщения"],
+      "messages": ["text of the first Telegram message"],
       "reply_to_incoming_index": 0
     }}
   ]
 }}
 
-Правила:
-- candidates должен содержать ровно {self.candidate_count} элементов.
-- messages содержит от 1 до {self.max_messages_per_candidate} сообщений.
-- reply_to_incoming_index = 0, если reply не нужен.
-- reply_to_incoming_index = номер входящего сообщения, если reply естественен.
-- Не используй Markdown.
-- Не добавляй текст вне JSON.
+Rules:
+- candidates must contain exactly {self.candidate_count} items.
+- messages must contain 1 to {self.max_messages_per_candidate} messages.
+- reply_to_incoming_index = 0 when no reply is needed.
+- reply_to_incoming_index = the incoming message number when a reply is natural.
+- Do not use Markdown.
+- Do not add text outside the JSON object.
 """.strip()
 
         if attempt > 1:
             user_prompt += (
-                "\n\nПредыдущая попытка была некорректной. "
-                "Верни только валидный JSON, без комментариев и без Markdown."
+                "\n\nThe previous attempt was invalid. "
+                "Return only valid JSON, without comments or Markdown."
             )
 
         if "qwen" in self.model.lower():
@@ -206,7 +206,10 @@ class MLXPredictor:
 
     def run_generate(self, prompt: str) -> str:
         command = [
-            "mlx_lm.generate",
+            sys.executable,
+            "-m",
+            "mlx_lm",
+            "generate",
             "--model",
             self.model,
             "--adapter-path",
@@ -237,7 +240,7 @@ class MLXPredictor:
         raw_candidates = payload.get("candidates", [])
 
         if not isinstance(raw_candidates, list):
-            raise RuntimeError("Поле candidates не является массивом.")
+            raise RuntimeError("The candidates field is not an array.")
 
         candidates: list[dict[str, Any]] = []
         seen: set[str] = set()
@@ -318,7 +321,7 @@ class MLXPredictor:
         incoming_message_count = len(incoming_messages)
 
         if incoming_message_count == 0:
-            raise RuntimeError("Нельзя генерировать ответ для пустого блока.")
+            raise RuntimeError("Cannot generate a response for an empty batch.")
 
         last_error = ""
 
@@ -343,8 +346,8 @@ class MLXPredictor:
                     return candidates, raw_text
 
                 last_error = (
-                    f"MLX вернула {len(candidates)} кандидатов "
-                    f"вместо {self.candidate_count}."
+                    f"MLX returned {len(candidates)} candidates "
+                    f"instead of {self.candidate_count}."
                 )
 
             except Exception as error:

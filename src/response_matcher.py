@@ -65,7 +65,7 @@ class ResponseMatcherWorker:
 
         except Exception as error:
             print(
-                f"[response matcher] Не удалось запустить: {error}",
+                f"[response matcher] Could not start: {error}",
                 flush=True,
             )
             return
@@ -148,9 +148,9 @@ class ResponseMatcherWorker:
             )
 
             print(
-                f"[сопоставление ответа] "
+                f"[response matching] "
                 f"response #{response_id}, batch #{batch_id}: "
-                f"лучший кандидат [{best_candidate['position']}], "
+                f"best candidate [{best_candidate['position']}], "
                 f"similarity={best_score:.3f}, "
                 f"attribution={attribution}",
                 flush=True,
@@ -163,7 +163,7 @@ class ResponseMatcherWorker:
             )
 
             print(
-                f"[ошибка сопоставления ответа #{response_id}] {error}",
+                f"[response matching error #{response_id}] {error}",
                 flush=True,
             )
 

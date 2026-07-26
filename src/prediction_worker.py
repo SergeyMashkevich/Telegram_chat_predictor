@@ -76,7 +76,7 @@ class PredictionWorker:
                 if provider == "mlx":
                     print(
                         f"[prediction worker] Provider: mlx, "
-                        f"model={generation['mlx_chat_model']}, "
+                        f"model={generation['mlx_model']}, "
                         f"adapter_exists={generation['mlx_adapter_exists']}",
                         flush=True,
                     )
@@ -94,19 +94,19 @@ class PredictionWorker:
 
         except Exception as error:
             print(
-                f"[prediction worker] Не удалось запустить predictor: {error}",
+                f"[prediction worker] Could not start predictor: {error}",
                 flush=True,
             )
             return
 
         try:
             ranker: CandidateRanker | None = CandidateRanker()
-            print("[prediction worker] Ranking включён.", flush=True)
+            print("[prediction worker] Ranking enabled.", flush=True)
 
         except Exception as error:
             ranker = None
             print(
-                f"[prediction worker] Ranking отключён: {error}",
+                f"[prediction worker] Ranking disabled: {error}",
                 flush=True,
             )
 
@@ -139,7 +139,7 @@ class PredictionWorker:
         if batch_info is None:
             mark_generation_failed(
                 batch_id,
-                "Входящий блок не найден.",
+                "Incoming batch not found.",
             )
             return
 
@@ -148,12 +148,12 @@ class PredictionWorker:
         if not incoming_messages:
             mark_generation_failed(
                 batch_id,
-                "Входящий блок не содержит сообщений.",
+                "Incoming batch contains no messages.",
             )
 
             print(
-                f"[ошибка генерации для блока #{batch_id}] "
-                "блок не содержит сообщений.",
+                f"[generation error for batch #{batch_id}] "
+                "the batch contains no messages.",
                 flush=True,
             )
             return
@@ -165,7 +165,7 @@ class PredictionWorker:
         )
 
         print(
-            f"[генерация кандидатов для блока #{batch_id}]",
+            f"[generating candidates for batch #{batch_id}]",
             flush=True,
         )
 
@@ -191,7 +191,7 @@ class PredictionWorker:
             )
 
             print(
-                f"[ошибка генерации для блока #{batch_id}] "
+                f"[generation error for batch #{batch_id}] "
                 f"{error_text}",
                 flush=True,
             )
@@ -207,8 +207,8 @@ class PredictionWorker:
 
         if not saved:
             print(
-                f"[кандидаты для блока #{batch_id}] "
-                "не сохранены: блок уже был отвечен вручную.",
+                f"[candidates for batch #{batch_id}] "
+                "not saved: the batch was already answered manually.",
                 flush=True,
             )
             return
@@ -220,12 +220,12 @@ class PredictionWorker:
             )
         except Exception as error:
             print(
-                f"[ranking] Не удалось сохранить score для блока #{batch_id}: {error}",
+                f"[ranking] Could not save score for batch #{batch_id}: {error}",
                 flush=True,
             )
 
         print()
-        print(f"[кандидаты для блока #{batch_id}]")
+        print(f"[candidates for batch #{batch_id}]")
 
         for position, candidate in enumerate(
             candidate_specs,
@@ -244,23 +244,23 @@ class PredictionWorker:
                 print(f"[{position}] score={score:.3f}")
 
             if reply_index == 0:
-                print("(без reply)")
+                print("(no reply)")
             elif 1 <= reply_index <= len(incoming_messages):
                 target_text = str(
                     incoming_messages[reply_index - 1].get("text", "")
                 )
                 print(
-                    f'(reply на [{reply_index}] "{_preview(target_text)}")'
+                    f'(reply to [{reply_index}] "{_preview(target_text)}")'
                 )
             else:
-                print("(reply указан некорректно, будет проигнорирован)")
+                print("(invalid reply value; it will be ignored)")
 
             for message in candidate["messages"]:
                 print(message)
 
         print()
         print(
-            f"Для отправки: send {batch_id} <номер>",
+            f"To send: send {batch_id} <number>",
             flush=True,
         )
         print()

@@ -32,7 +32,7 @@ def set_active_chat(chat: dict[str, Any]) -> None:
 
     if missing:
         raise ValueError(
-            "Не хватает полей active chat: "
+            "Active chat is missing required fields: "
             + ", ".join(sorted(missing))
         )
 
@@ -55,7 +55,7 @@ def require_active_chat() -> dict[str, Any]:
 
     if chat is None:
         raise RuntimeError(
-            "Чат не выбран. Запустите make run или make select-chat."
+            "No chat selected. Run make run or make select-chat."
         )
 
     return chat

@@ -21,7 +21,7 @@ def active_lora_dir() -> Path:
 
     if active_chat is None:
         raise RuntimeError(
-            "Чат не выбран. Сначала выполните make run или make select-chat."
+            "No chat selected. Run make run or make select-chat first."
         )
 
     return ADAPTERS_DIR / "chats" / str(active_chat["chat_id"]) / "lora"
@@ -53,7 +53,7 @@ def write_active_model_metadata(
 
     if active_chat is None:
         raise RuntimeError(
-            "Чат не выбран. Сначала выполните make run или make select-chat."
+            "No chat selected. Run make run or make select-chat first."
         )
 
     path = active_metadata_path()

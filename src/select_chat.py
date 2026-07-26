@@ -76,11 +76,11 @@ def load_private_chats(client: TdlibClient) -> list[dict[str, Any]]:
 
 def choose_chat(chats: list[dict[str, Any]]) -> dict[str, Any]:
     if not chats:
-        raise RuntimeError("Личные чаты не найдены.")
+        raise RuntimeError("No private chats found.")
 
     while True:
         query = input(
-            "Введите часть имени для поиска или Enter, чтобы показать первые 50: "
+            "Enter part of a name to search, or press Enter to show the first 50: "
         ).strip().lower()
 
         if query:
@@ -93,11 +93,11 @@ def choose_chat(chats: list[dict[str, Any]]) -> dict[str, Any]:
             filtered = chats[:50]
 
         if not filtered:
-            print("По этому фильтру чаты не найдены.")
+            print("No chats match this filter.")
             continue
 
         print()
-        print("Найденные личные чаты:")
+        print("Private chats found:")
 
         for index, chat in enumerate(filtered, start=1):
             print(
@@ -109,7 +109,7 @@ def choose_chat(chats: list[dict[str, Any]]) -> dict[str, Any]:
         print()
 
         raw_choice = input(
-            "Выберите номер чата или Enter, чтобы изменить поиск: "
+            "Choose a chat number, or press Enter to change the search: "
         ).strip()
 
         if not raw_choice:
@@ -118,13 +118,13 @@ def choose_chat(chats: list[dict[str, Any]]) -> dict[str, Any]:
         try:
             choice = int(raw_choice)
         except ValueError:
-            print("Введите число.")
+            print("Enter a number.")
             continue
 
         if 1 <= choice <= len(filtered):
             return filtered[choice - 1]
 
-        print("Номер вне диапазона.")
+        print("Number is out of range.")
 
 
 def save_selected_chat(chat: dict[str, Any]) -> None:
@@ -146,14 +146,14 @@ def select_and_save_chat(
 
     if allow_keep_current and current is not None:
         print()
-        print("Текущий выбранный чат:")
+        print("Currently selected chat:")
         print(f"  title:   {current['title']}")
         print(f"  user_id: {current['user_id']}")
         print(f"  chat_id: {current['chat_id']}")
         print()
 
         keep = input(
-            "Enter оставить этот чат, search выбрать другой: "
+            "Press Enter to keep this chat, or enter search to choose another: "
         ).strip().lower()
 
         if keep == "":
@@ -161,14 +161,14 @@ def select_and_save_chat(
             return current
 
     print()
-    print("Загружаю список личных чатов...")
+    print("Loading private chats...")
 
     chats = load_private_chats(client)
     selected = choose_chat(chats)
     save_selected_chat(selected)
 
     print()
-    print("Выбран чат:")
+    print("Selected chat:")
     print(f"  title:   {selected['title']}")
     print(f"  user_id: {selected['user_id']}")
     print(f"  chat_id: {selected['chat_id']}")

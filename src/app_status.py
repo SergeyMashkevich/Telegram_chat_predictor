@@ -219,7 +219,7 @@ def print_status() -> None:
         try:
             generation = describe_generation_status()
             print(f"generation_provider:  {generation['generation_provider']}")
-            print(f"mlx_model:            {generation['mlx_chat_model'] or 'not set'}")
+            print(f"mlx_model:            {generation['mlx_model'] or 'not set'}")
             print(f"mlx_adapter_exists:   {generation['mlx_adapter_exists']}")
             print(f"ollama_embed_model:   {generation['ollama_embed_model']}")
         except Exception as error:

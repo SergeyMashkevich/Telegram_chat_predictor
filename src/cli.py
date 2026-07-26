@@ -49,21 +49,21 @@ def poll_cli_line() -> str | None:
 def print_cli_help() -> None:
     print()
     print("[CLI manual mode]")
-    print("  list                    показать ожидающие кандидаты")
-    print("  1, 2, 3                 отправить кандидат для старейшего блока")
-    print("  send <batch> <номер>     отправить конкретный кандидат")
-    print("  e <текст>                отправить свой текст для старейшего блока")
-    print("  write <batch> <текст>    отправить свой текст для блока")
-    print("  s                        пропустить старейший блок")
-    print("  skip <batch>             пропустить конкретный блок")
-    print("  help                     показать команды")
-    print("  status                   показать состояние приложения")
-    print("  sync [limit]             обновить историю текущего чата")
-    print("  model                    показать generation provider и adapter")
-    print("  mode                     показать текущий режим")
-    print("  auto                     включить автоматическую отправку")
-    print("  manual                   включить ручной режим")
-    print("  quit                     завершить приложение")
+    print("  list                    show pending candidates")
+    print("  1, 2, 3                 send a candidate for the oldest batch")
+    print("  send <batch> <number>    send a specific candidate")
+    print("  e <text>                 send custom text for the oldest batch")
+    print("  write <batch> <text>     send custom text for a batch")
+    print("  s                        skip the oldest batch")
+    print("  skip <batch>             skip a specific batch")
+    print("  help                     show commands")
+    print("  status                   show application status")
+    print("  sync [limit]             update current chat history")
+    print("  model                    show generation provider and adapter")
+    print("  mode                     show current mode")
+    print("  auto                     enable automatic sending")
+    print("  manual                   enable manual mode")
+    print("  quit                     exit the application")
     print()
 
 
@@ -81,31 +81,31 @@ def _format_reply_hint(
     reply_to_incoming_index: int,
 ) -> str:
     if reply_to_incoming_index <= 0:
-        return "(без reply)"
+        return "(no reply)"
 
     messages = get_batch_messages(batch_id)
     index = reply_to_incoming_index - 1
 
     if index < 0 or index >= len(messages):
-        return "(reply указан некорректно)"
+        return "(invalid reply value)"
 
     text = str(messages[index].get("text", ""))
 
-    return f'(reply на [{reply_to_incoming_index}] "{_preview(text)}")'
+    return f'(reply to [{reply_to_incoming_index}] "{_preview(text)}")'
 
 
 def print_pending_candidates(chat_id: int) -> None:
     batches = get_pending_candidates(chat_id)
 
     if not batches:
-        print("[CLI] Нет блоков, ожидающих выбора.", flush=True)
+        print("[CLI] No batches are waiting for a selection.", flush=True)
         return
 
     for batch in batches:
         batch_id = int(batch["batch_id"])
 
         print()
-        print(f"[ожидает выбора блок #{batch_id}]")
+        print(f"[batch #{batch_id} awaiting selection]")
 
         for candidate in batch["candidates"]:
             print()
@@ -172,7 +172,7 @@ def _send_claimed_response(
         )
 
         print(
-            f"[CLI] Ошибка отправки для блока #{batch_id}: {error}",
+            f"[CLI] Send error for batch #{batch_id}: {error}",
             flush=True,
         )
         return
@@ -188,12 +188,12 @@ def _send_claimed_response(
 
     if result.used_reply:
         print(
-            f"[CLI] Ответ для блока #{batch_id} отправлен с reply.",
+            f"[CLI] Response for batch #{batch_id} sent with a reply.",
             flush=True,
         )
     else:
         print(
-            f"[CLI] Ответ для блока #{batch_id} отправлен без reply.",
+            f"[CLI] Response for batch #{batch_id} sent without a reply.",
             flush=True,
         )
 
@@ -210,7 +210,7 @@ def _send_candidate(
 
     if claimed is None:
         print(
-            "[CLI] Кандидат не найден или блок уже обработан.",
+            "[CLI] Candidate not found or batch already handled.",
             flush=True,
         )
         return
@@ -233,7 +233,7 @@ def _send_custom_text(
 
     if claimed is None:
         print(
-            "[CLI] Текст пустой или блок уже обработан.",
+            "[CLI] Text is empty or batch already handled.",
             flush=True,
         )
         return
@@ -249,7 +249,7 @@ def _oldest_pending_batch(chat_id: int) -> int | None:
 
     if batch_id is None:
         print(
-            "[CLI] Нет блоков, ожидающих выбора.",
+            "[CLI] No batches are waiting for a selection.",
             flush=True,
         )
 
@@ -296,7 +296,7 @@ def handle_cli_command(
         return True
 
         if not models:
-            print("[CLI] Ollama-модели не найдены.", flush=True)
+            print("[CLI] No Ollama models found.", flush=True)
             return True
 
         print()
@@ -309,7 +309,7 @@ def handle_cli_command(
         return True
 
         print(
-            f"[CLI] Для текущего чата выбрана модель: {model_name}",
+            f"[CLI] Selected model for the current chat: {model_name}",
             flush=True,
         )
         return True
@@ -325,7 +325,7 @@ def handle_cli_command(
             try:
                 limit = int(parts[1])
             except ValueError:
-                print("[CLI] limit должен быть числом.", flush=True)
+                print("[CLI] limit must be a number.", flush=True)
                 return True
         else:
             try:
@@ -334,7 +334,7 @@ def handle_cli_command(
                 limit = 1000
 
         print(
-            f"[CLI] Обновляю историю текущего чата, limit={limit}...",
+            f"[CLI] Updating current chat history, limit={limit}...",
             flush=True,
         )
 
@@ -345,11 +345,11 @@ def handle_cli_command(
                 limit=limit,
             )
         except Exception as error:
-            print(f"[CLI] Ошибка sync: {error}", flush=True)
+            print(f"[CLI] Sync error: {error}", flush=True)
             return True
 
         print(
-            f"[CLI] Sync завершён: "
+            f"[CLI] Sync complete: "
             f"{result['chat_title']}, "
             f"TDLib objects={result['raw_count']}, "
             f"saved={result['normalized_count']}.",
@@ -359,17 +359,17 @@ def handle_cli_command(
 
     if lower == "mode":
         mode = get_app_state("app_mode") or os.getenv("APP_MODE", "manual")
-        print(f"[CLI] Текущий режим: {mode}", flush=True)
+        print(f"[CLI] Current mode: {mode}", flush=True)
         return True
 
     if lower == "auto":
         set_app_state("app_mode", "auto")
-        print("[CLI] Auto mode включён.", flush=True)
+        print("[CLI] Auto mode enabled.", flush=True)
         return True
 
     if lower == "manual":
         set_app_state("app_mode", "manual")
-        print("[CLI] Manual mode включён.", flush=True)
+        print("[CLI] Manual mode enabled.", flush=True)
         return True
 
     if lower in {"list", "l"}:
@@ -397,12 +397,12 @@ def handle_cli_command(
         if batch_id is not None:
             if skip_batch(batch_id):
                 print(
-                    f"[CLI] Блок #{batch_id} пропущен.",
+                    f"[CLI] Batch #{batch_id} skipped.",
                     flush=True,
                 )
             else:
                 print(
-                    "[CLI] Блок уже обработан.",
+                    "[CLI] Batch already handled.",
                     flush=True,
                 )
 
@@ -447,23 +447,23 @@ def handle_cli_command(
 
             if skip_batch(batch_id):
                 print(
-                    f"[CLI] Блок #{batch_id} пропущен.",
+                    f"[CLI] Batch #{batch_id} skipped.",
                     flush=True,
                 )
             else:
                 print(
-                    "[CLI] Блок не найден или уже обработан.",
+                    "[CLI] Batch not found or already handled.",
                     flush=True,
                 )
 
             return True
 
     except ValueError:
-        print("[CLI] Неверный числовой аргумент.", flush=True)
+        print("[CLI] Invalid numeric argument.", flush=True)
         return True
 
     print(
-        "[CLI] Неизвестная команда. Введите help.",
+        "[CLI] Unknown command. Enter help.",
         flush=True,
     )
 

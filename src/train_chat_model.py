@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -23,7 +24,7 @@ def dataset_dir() -> Path:
 
     if active_chat is None:
         raise RuntimeError(
-            "Чат не выбран. Сначала выполните make run или make select-chat."
+            "No chat selected. Run make run or make select-chat first."
         )
 
     return DATASETS_DIR / "chats" / str(active_chat["chat_id"])
@@ -34,7 +35,7 @@ def adapter_dir() -> Path:
 
     if active_chat is None:
         raise RuntimeError(
-            "Чат не выбран. Сначала выполните make run или make select-chat."
+            "No chat selected. Run make run or make select-chat first."
         )
 
     return ADAPTERS_DIR / "chats" / str(active_chat["chat_id"]) / "lora"
@@ -47,7 +48,7 @@ def main() -> None:
 
     if active_chat is None:
         raise RuntimeError(
-            "Чат не выбран. Сначала выполните make run или make select-chat."
+            "No chat selected. Run make run or make select-chat first."
         )
 
     model = os.getenv(
@@ -65,8 +66,8 @@ def main() -> None:
 
     if not (data_path / "train.jsonl").exists():
         raise RuntimeError(
-            f"Нет {data_path / 'train.jsonl'}. "
-            "Сначала выполните make prepare-training."
+            f"Missing {data_path / 'train.jsonl'}. "
+            "Run make prepare-training first."
         )
 
     print()
@@ -84,7 +85,10 @@ def main() -> None:
     print()
 
     command = [
-        "mlx_lm.lora",
+        sys.executable,
+        "-m",
+        "mlx_lm",
+        "lora",
         "--model",
         model,
         "--train",
@@ -133,8 +137,8 @@ def main() -> None:
     print(f"adapter: {adapter_path}")
     print(f"metadata: {metadata_path}")
     print()
-    print("Следующий шаг: протестировать adapter через mlx_lm.generate,")
-    print("а затем решить, как подключать его к основному приложению.")
+    print("Next, test the adapter with mlx_lm.generate,")
+    print("then decide how to connect it to the main application.")
 
 
 if __name__ == "__main__":

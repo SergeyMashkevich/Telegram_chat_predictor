@@ -8,6 +8,10 @@ from typing import Any
 from dotenv import load_dotenv
 
 from src.chat_context import get_active_chat
+from src.predictor_factory import (
+    configured_generation_provider,
+    resolve_generation_provider,
+)
 from src.telegram_client import ENV_PATH
 
 
@@ -62,7 +66,8 @@ def describe_generation_status() -> dict[str, Any]:
     load_env()
 
     chat = get_active_chat()
-    provider = os.getenv("CHAT_GENERATION_PROVIDER", "ollama").strip().lower()
+    configured_provider = configured_generation_provider()
+    provider, provider_reason = resolve_generation_provider(configured_provider)
 
     adapter_path = active_adapter_path()
     adapter_exists = bool(adapter_path and adapter_path.exists())
@@ -78,7 +83,9 @@ def describe_generation_status() -> dict[str, Any]:
 
     return {
         "chat": chat,
+        "configured_generation_provider": configured_provider,
         "generation_provider": provider,
+        "generation_provider_reason": provider_reason,
         "fallback_provider": os.getenv("GENERATION_FALLBACK_PROVIDER", ""),
         "fallback_on_error": os.getenv("GENERATION_FALLBACK_ON_ERROR", "true"),
 
@@ -106,7 +113,9 @@ def print_generation_status() -> None:
         print(f"chat_id:             {chat.get('chat_id')}")
 
     print()
-    print(f"provider:            {info['generation_provider']}")
+    print(f"configured_provider: {info['configured_generation_provider']}")
+    print(f"resolved_provider:   {info['generation_provider']}")
+    print(f"resolution:          {info['generation_provider_reason']}")
     print(f"fallback:            {info.get('fallback_provider') or 'not set'}")
 
     print()

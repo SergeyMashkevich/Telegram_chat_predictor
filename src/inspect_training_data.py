@@ -17,7 +17,7 @@ def dataset_dir() -> Path:
 
     if active_chat is None:
         raise RuntimeError(
-            "Чат не выбран. Сначала выполните make run или make select-chat."
+            "No chat selected. Run make run or make select-chat first."
         )
 
     return DATASETS_DIR / "chats" / str(active_chat["chat_id"])
@@ -26,8 +26,8 @@ def dataset_dir() -> Path:
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         raise RuntimeError(
-            f"Dataset не найден: {path}\n"
-            "Сначала выполните make export-training."
+            f"Dataset not found: {path}\n"
+            "Run make export-training first."
         )
 
     examples: list[dict[str, Any]] = []
@@ -43,7 +43,7 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
                 examples.append(json.loads(line))
             except json.JSONDecodeError as error:
                 raise RuntimeError(
-                    f"Некорректный JSONL на строке {line_number}: {error}"
+                    f"Invalid JSONL on line {line_number}: {error}"
                 ) from error
 
     return examples
@@ -173,7 +173,7 @@ def main() -> None:
     examples = load_jsonl(input_path)
 
     if not examples:
-        raise RuntimeError("Dataset пустой.")
+        raise RuntimeError("Dataset is empty.")
 
     review = load_review()
     dropped_indexes = {
@@ -228,7 +228,7 @@ def main() -> None:
             try:
                 number = int(raw_number)
             except ValueError:
-                print("Номер должен быть числом.")
+                print("The number must be numeric.")
                 continue
 
             index = number - 1
@@ -250,12 +250,15 @@ def main() -> None:
             break
 
         else:
-            print("Неизвестная команда.")
+            print("Unknown command.")
 
         if index >= len(examples):
             index = len(examples) - 1
             print()
-            print("Вы дошли до конца dataset. Введите f, чтобы записать filtered dataset.")
+            print(
+                "You reached the end of the dataset. "
+                "Enter f to write the filtered dataset."
+            )
 
 
 if __name__ == "__main__":

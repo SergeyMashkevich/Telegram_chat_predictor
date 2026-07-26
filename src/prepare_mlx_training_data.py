@@ -21,7 +21,7 @@ def dataset_dir() -> Path:
 
     if active_chat is None:
         raise RuntimeError(
-            "Чат не выбран. Сначала выполните make run или make select-chat."
+            "No chat selected. Run make run or make select-chat first."
         )
 
     return DATASETS_DIR / "chats" / str(active_chat["chat_id"])
@@ -30,8 +30,8 @@ def dataset_dir() -> Path:
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         raise RuntimeError(
-            f"Dataset не найден: {path}\n"
-            "Сначала выполните make export-training и make inspect-training."
+            f"Dataset not found: {path}\n"
+            "Run make export-training and make inspect-training first."
         )
 
     examples: list[dict[str, Any]] = []
@@ -67,7 +67,7 @@ def main() -> None:
 
     if len(examples) < 5:
         raise RuntimeError(
-            f"Слишком мало examples для train/valid split: {len(examples)}"
+            f"Too few examples for a train/valid split: {len(examples)}"
         )
 
     random.seed(42)

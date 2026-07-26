@@ -40,8 +40,8 @@ class IncomingBatcher:
 
             if batch_id is not None:
                 print(
-                    f"[входящий блок #{batch_id}] "
-                    "отмечен как отвеченный вручную.",
+                    f"[incoming batch #{batch_id}] "
+                    "marked as answered manually.",
                     flush=True,
                 )
 
@@ -82,8 +82,8 @@ class IncomingBatcher:
             )
 
             print(
-                f"[входящий блок #{batch_id}] "
-                "начат сбор сообщений.",
+                f"[incoming batch #{batch_id}] "
+                "started collecting messages.",
                 flush=True,
             )
 
@@ -100,8 +100,8 @@ class IncomingBatcher:
 
         if appended:
             print(
-                f"[входящий блок #{batch_id}] "
-                "добавлено ещё одно сообщение.",
+                f"[incoming batch #{batch_id}] "
+                "added another message.",
                 flush=True,
             )
 
@@ -123,7 +123,7 @@ class IncomingBatcher:
 
         print()
         print(
-            f"[готов входящий блок #{batch_id}]",
+            f"[incoming batch #{batch_id} ready]",
             flush=True,
         )
 

@@ -21,7 +21,7 @@ def active_lora_dir() -> Path:
 
     if chat is None:
         raise RuntimeError(
-            "Чат не выбран. Сначала выполните make run или make select-chat."
+            "No chat selected. Run make run or make select-chat first."
         )
 
     return ADAPTERS_DIR / "chats" / str(chat["chat_id"]) / "lora"
@@ -57,13 +57,13 @@ def write_active_adapter_metadata(
 
     if chat is None:
         raise RuntimeError(
-            "Чат не выбран. Сначала выполните make run или make select-chat."
+            "No chat selected. Run make run or make select-chat first."
         )
 
     adapter_path = active_adapter_path()
 
     if not adapter_path.exists():
-        raise RuntimeError(f"Active adapter не найден: {adapter_path}")
+        raise RuntimeError(f"Active adapter not found: {adapter_path}")
 
     payload: dict[str, Any] = {
         "chat_title": chat.get("title"),

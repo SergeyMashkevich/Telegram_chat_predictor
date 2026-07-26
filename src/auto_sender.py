@@ -84,8 +84,8 @@ class AutoSender:
         )
 
         print(
-            f"[AUTO] Отправляю кандидат [{candidate_position}] "
-            f"для блока #{batch_id}, score={score_text}.",
+            f"[AUTO] Sending candidate [{candidate_position}] "
+            f"for batch #{batch_id}, score={score_text}.",
             flush=True,
         )
 
@@ -107,7 +107,7 @@ class AutoSender:
             )
 
             print(
-                f"[AUTO] Ошибка отправки для блока #{batch_id}: {error}",
+                f"[AUTO] Send error for batch #{batch_id}: {error}",
                 flush=True,
             )
             return
@@ -121,11 +121,11 @@ class AutoSender:
 
         if result.used_reply:
             print(
-                f"[AUTO] Ответ для блока #{batch_id} отправлен с reply.",
+                f"[AUTO] Response for batch #{batch_id} sent with a reply.",
                 flush=True,
             )
         else:
             print(
-                f"[AUTO] Ответ для блока #{batch_id} отправлен без reply.",
+                f"[AUTO] Response for batch #{batch_id} sent without a reply.",
                 flush=True,
             )

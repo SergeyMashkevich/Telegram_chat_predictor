@@ -15,6 +15,7 @@ from src.telegram_client import ENV_PATH
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATASETS_DIR = PROJECT_ROOT / "datasets"
+TRAINING_FORMAT_VERSION = 2
 
 
 URL_RE = re.compile(
@@ -35,7 +36,7 @@ URL_RE = re.compile(
 
 def clean_text(text: str) -> str:
     text = str(text).strip()
-    text = URL_RE.sub("[ссылка]", text)
+    text = URL_RE.sub("[link]", text)
     return " ".join(text.split())
 
 
@@ -55,7 +56,7 @@ def render_context(messages: list[dict[str, Any]]) -> str:
     rendered: list[str] = []
 
     for message in messages:
-        role = "Вы" if int(message["is_outgoing"]) else "Собеседник"
+        role = "You" if int(message["is_outgoing"]) else "Chat partner"
         text = clean_text(str(message["text"]))
 
         if text:
@@ -170,11 +171,11 @@ def build_examples(
         context_text = render_context(context_messages)
 
         user_prompt = f"""
-Предыдущая переписка:
+Previous conversation:
 
 {context_text}
 
-Текущий входящий блок, на который нужно ответить:
+Current incoming batch to answer:
 
 {incoming_text}
 """.strip()
@@ -185,9 +186,10 @@ def build_examples(
                     {
                         "role": "system",
                         "content": (
-                            "Имитируй стиль пользователя в личной переписке Telegram. "
-                            "Ответь так, как пользователь вероятнее всего ответил бы сам. "
-                            "Не объясняй ответ."
+                            "Imitate the user's style in a private Telegram chat. "
+                            "Respond as the user would most likely respond. "
+                            "Use the language naturally implied by the conversation. "
+                            "Do not explain the response."
                         ),
                     },
                     {
@@ -200,6 +202,7 @@ def build_examples(
                     },
                 ],
                 "metadata": {
+                    "format_version": TRAINING_FORMAT_VERSION,
                     "target_message_ids": [
                         int(message["message_id"])
                         for message in block["messages"]
@@ -232,7 +235,7 @@ def main() -> None:
 
     if active_chat is None:
         raise RuntimeError(
-            "Чат не выбран. Сначала выполните make run или make select-chat."
+            "No chat selected. Run make run or make select-chat first."
         )
 
     context_blocks = int(os.getenv("TRAIN_CONTEXT_BLOCKS", "8"))

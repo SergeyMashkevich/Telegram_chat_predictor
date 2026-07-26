@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -23,7 +24,7 @@ def dataset_dir() -> Path:
 
     if active_chat is None:
         raise RuntimeError(
-            "Чат не выбран. Сначала выполните make run или make select-chat."
+            "No chat selected. Run make run or make select-chat first."
         )
 
     return DATASETS_DIR / "chats" / str(active_chat["chat_id"])
@@ -34,7 +35,7 @@ def adapter_dir() -> Path:
 
     if active_chat is None:
         raise RuntimeError(
-            "Чат не выбран. Сначала выполните make run или make select-chat."
+            "No chat selected. Run make run or make select-chat first."
         )
 
     return ADAPTERS_DIR / "chats" / str(active_chat["chat_id"]) / "lora"
@@ -45,7 +46,7 @@ def backup_adapter(adapter_path: Path) -> Path:
 
     if not source.exists():
         raise RuntimeError(
-            f"Нет существующего adapter для продолжения обучения: {source}"
+            f"No existing adapter found to continue training: {source}"
         )
 
     backups_dir = adapter_path / "backups"
@@ -66,7 +67,7 @@ def main() -> None:
 
     if active_chat is None:
         raise RuntimeError(
-            "Чат не выбран. Сначала выполните make run или make select-chat."
+            "No chat selected. Run make run or make select-chat first."
         )
 
     model = os.getenv(
@@ -84,14 +85,14 @@ def main() -> None:
 
     if not (data_path / "train.jsonl").exists():
         raise RuntimeError(
-            f"Нет {data_path / 'train.jsonl'}. "
-            "Сначала выполните make prepare-training."
+            f"Missing {data_path / 'train.jsonl'}. "
+            "Run make prepare-training first."
         )
 
     if not resume_file.exists():
         raise RuntimeError(
-            f"Нет adapter для продолжения обучения: {resume_file}. "
-            "Сначала выполните make train-chat-model."
+            f"No adapter found to continue training: {resume_file}. "
+            "Run make train-chat-model first."
         )
 
     backup_path = backup_adapter(adapter_path)
@@ -113,7 +114,10 @@ def main() -> None:
     print()
 
     command = [
-        "mlx_lm.lora",
+        sys.executable,
+        "-m",
+        "mlx_lm",
+        "lora",
         "--model",
         model,
         "--train",
@@ -140,7 +144,7 @@ def main() -> None:
     print(f"adapter: {adapter_path}")
     print(f"backup:  {backup_path}")
     print()
-    print("Теперь выполните make test-chat-model и сравните качество.")
+    print("Now run make test-chat-model and compare the quality.")
 
 
 if __name__ == "__main__":
